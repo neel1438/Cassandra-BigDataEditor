@@ -119,6 +119,31 @@ def split():
             keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
     return redirect('/', 302);
 
+@app.route('/split_index/', methods=['POST'])
+def split_index():
+    if (request.method == 'POST'):
+        kspc = request.form['keyspace'];
+        columnfamily = request.form['columnfamily']
+        key = request.form['split_column_name']
+        start = int(request.form['start'])
+        end= int(request.form['end'])
+        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        for row in content:
+            dic1 = {}
+            dic2 = OrderedDict()
+            for key1 in row[1]:
+                if (key == key1):
+                    value = row[1][key1];
+                    value = str(value)
+                    
+                    dic2[str(key + '1')] = value[start:end]
+                    
+                dic1[row[0]] = dic2
+            print "------------------------------------------------------------------------------------"
+            print dic1;
+            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
+    return redirect('/', 302);
+
 @app.route('/trim/', methods=['POST'])
 def trim():
     if (request.method == 'POST'):

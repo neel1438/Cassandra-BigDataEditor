@@ -12,7 +12,7 @@ function formSubmit(val)
 		{
 		i = parseInt(document.getElementById("next_val").value);
      		i = i-20;
-		if(i>=0)
+		if(i>0)
      		 	{document.getElementById("next_val").value = i; }
 		else
 			{document.getElementById("next_val").value = 0; }	
@@ -64,6 +64,21 @@ function formSubmit(val)
 				<input type="hidden" name="keyspace" value={{ ks }} >
 				<input type="hidden" name="columnfamily" value={{ cf }} >
 				<input type="text"  name="delimiter" value="," >
+				<input type="submit" value="split"/>
+</form>
+<form action="/split_index/" method="post">
+				<select name="split_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="text"  name="start" value="" >
+				<input type="text"  name="end" value="" >
 				<input type="submit" value="split"/>
 </form>
 <form action="/trim/" method="post">
