@@ -66,6 +66,19 @@ function formSubmit(val)
 				<input type="text"  name="delimiter" value="," >
 				<input type="submit" value="split"/>
 </form>
+<form action="/trim/" method="post">
+				<select name="trim_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="submit" value="trim"/>
+</form>
 {% else %}
 	<h1>	{{ error }}	</h1>
 {% endif %}
