@@ -5,7 +5,13 @@
 {% endblock %}
 
 {% block javascript %}
+<script src="../static/1.js"></script>
 <script>
+$(function(){
+	$(".transform").each(function(){
+		$(this).hide();
+	})
+})
 function formSubmit(val)
 	{
 	if (val == 1)
@@ -19,6 +25,13 @@ function formSubmit(val)
 		}
 	document.getElementById("form").submit();
 	}
+
+function showoperations()
+{
+	$(".transform").each(function(){
+		$(this).toggle();
+	})
+}
 </script>
 {% endblock %}
 
@@ -28,6 +41,75 @@ function formSubmit(val)
 
 {% if result %}
 <p>Content of column family</p>
+<a onclick="showoperations()">Perform transform operations</a>
+<form class="transform" action="/split/" method="post">
+				<select name="split_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="text"  name="delimiter" value="," >
+				<input type="submit" value="split"/>
+</form>
+<form class="transform" action="/split_index/" method="post">
+				<select name="split_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="text"  name="start" value="" >
+				<input type="text"  name="end" value="" >
+				<input type="submit" value="split"/>
+</form>
+<form class="transform" action="/trim/" method="post">
+				<select name="trim_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="submit" value="trim"/>
+</form>
+<form class="transform" action="/upper/" method="post">
+				<select name="trim_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="submit" value="to Uppercase"/>
+</form>
+<form class="transform" action="/lower/" method="post">
+				<select name="trim_column_name">
+					{% for key in k %}
+					
+					<option value={{ key }}>{{ key  }}</option>
+					
+					{% endfor %}
+
+				</select>
+				<input type="hidden" name="keyspace" value={{ ks }} >
+				<input type="hidden" name="columnfamily" value={{ cf }} >
+				<input type="submit" value="to Lowercase"/>
+</form>
 <form id="form" method = "POST" accept-charset="UTF-8" />
 		<input type="hidden" id="ks_name" name="ks_name" value="">
 		<input type="hidden" id="cf_name" name="cf_name" value="">
@@ -52,48 +134,7 @@ function formSubmit(val)
 		</tr>
   	     </table>
 </form>
-<form action="/split/" method="post">
-				<select name="split_column_name">
-					{% for key in k %}
-					
-					<option value={{ key }}>{{ key  }}</option>
-					
-					{% endfor %}
 
-				</select>
-				<input type="hidden" name="keyspace" value={{ ks }} >
-				<input type="hidden" name="columnfamily" value={{ cf }} >
-				<input type="text"  name="delimiter" value="," >
-				<input type="submit" value="split"/>
-</form>
-<form action="/split_index/" method="post">
-				<select name="split_column_name">
-					{% for key in k %}
-					
-					<option value={{ key }}>{{ key  }}</option>
-					
-					{% endfor %}
-
-				</select>
-				<input type="hidden" name="keyspace" value={{ ks }} >
-				<input type="hidden" name="columnfamily" value={{ cf }} >
-				<input type="text"  name="start" value="" >
-				<input type="text"  name="end" value="" >
-				<input type="submit" value="split"/>
-</form>
-<form action="/trim/" method="post">
-				<select name="trim_column_name">
-					{% for key in k %}
-					
-					<option value={{ key }}>{{ key  }}</option>
-					
-					{% endfor %}
-
-				</select>
-				<input type="hidden" name="keyspace" value={{ ks }} >
-				<input type="hidden" name="columnfamily" value={{ cf }} >
-				<input type="submit" value="trim"/>
-</form>
 {% else %}
 	<h1>	{{ error }}	</h1>
 {% endif %}

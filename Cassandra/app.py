@@ -158,14 +158,54 @@ def trim():
                 if (key == key1):
                     value = row[1][key1];
                     value = str(value)
-                    dic2[str(key)] =''.join(value.split())
+                    dic2[str(key)] =value.strip()
                 dic1[row[0]] = dic2
             print "------------------------------------------------------------------------------------"
             print dic1;
             keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
     return redirect('/', 302);
 
+@app.route('/upper/', methods=['POST'])
+def upper():
+    if (request.method == 'POST'):
+        kspc = request.form['keyspace'];
+        columnfamily = request.form['columnfamily']
+        key = request.form['trim_column_name']
+        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        for row in content:
+            dic1 = {}
+            dic2 = OrderedDict()
+            for key1 in row[1]:
+                if (key == key1):
+                    value = row[1][key1];
+                    value = str(value)
+                    dic2[str(key)] =value.upper()
+                dic1[row[0]] = dic2
+            print "------------------------------------------------------------------------------------"
+            print dic1;
+            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
+    return redirect('/', 302);
 
+@app.route('/lower/', methods=['POST'])
+def lower():
+    if (request.method == 'POST'):
+        kspc = request.form['keyspace'];
+        columnfamily = request.form['columnfamily']
+        key = request.form['trim_column_name']
+        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        for row in content:
+            dic1 = {}
+            dic2 = OrderedDict()
+            for key1 in row[1]:
+                if (key == key1):
+                    value = row[1][key1];
+                    value = str(value)
+                    dic2[str(key)] =value.lower()
+                dic1[row[0]] = dic2
+            print "------------------------------------------------------------------------------------"
+            print dic1;
+            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
+    return redirect('/', 302);
 @app.route('/search/')
 def my_form():
     return render_template("search.html")
