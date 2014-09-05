@@ -1,0 +1,29 @@
+
+{% extends "layout 2.html" %}
+
+{% block title %}	
+	Cassandra Browsing Tool
+{% endblock %}
+
+{% block css %}
+<style type="text/css">
+	.table
+	{
+	 overflow: auto;
+	}
+</style>
+{% endblock %}
+{% block content %}
+
+<form action='/create_facet/' method='post' >
+		<input type="hidden" name="1ks_name" value={{ ks }}>
+		<input type="hidden" name="2cf_name" value= {{ cf }}>
+		<select name="column_name">
+			{% for key in k %}
+				<option value={{ key }}>{{ key  }}</option>
+			{% endfor %}
+		</select>
+		<input type="Submit" value="Create Facet">
+</form>
+
+{% endblock %}

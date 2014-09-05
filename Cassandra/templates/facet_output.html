@@ -1,0 +1,22 @@
+
+{% extends "layout 2.html" %}
+
+{% block title %}	
+	Cassandra Browsing Tool
+{% endblock %}
+
+{% block css %}
+<style type="text/css">
+	.table
+	{
+	 overflow: auto;
+	}
+</style>
+{% endblock %}
+{% block content %}
+
+{{ks}}
+{{cf}}
+{{column_name}}
+
+{% endblock %}

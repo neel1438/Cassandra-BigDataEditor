@@ -42,12 +42,37 @@ def main():
 @app.route("/facets/", methods=['GET', 'POST'])
 def facets():
     output = keyspace()
+    if request.method== 'POST':
+        ks=request.form['1ks_name']
+        cf=request.form['2cf_name']
+        k=output.getallkeys()[ks][cf];
+        return render_template('facet_create.html',k=k,ks=ks,cf=cf)
+
+   
     result = output.keyspace_get_list('localhost:9160')
     d = {}
     for p in result:
         res = output.colum_family_list('localhost:9160', p)
         d[p] = res
-    return render_template('test.html', d=d)
+    return render_template('facets.html', d=d,)
+
+@app.route("/create_facet/", methods=['POST'])
+def create_facet():
+    output=keyspace()
+    ks=request.form['1ks_name']
+    cf=request.form['2cf_name']
+    column_name=request.form['column_name']
+    result = output.colum_family_content('localhost:9160', ks, cf)
+    output.tempks=ks
+    output.tempcf=cf
+    return render_template("facet_output.html",ks=ks,cf=cf,column_name=column_name);
+        
+
+        
+
+
+
+
 
 
 @app.route("/dataupload/", methods=['GET', 'POST'])
