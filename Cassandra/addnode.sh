@@ -4,28 +4,28 @@
 # Assuming the user is loginned as Super-User and if not login then it will ask for sudo access
 # Installing required libraries :: pycassa, flask
 
-apt-get install python-pycassa
+#apt-get install python-pycassa
 
-for i in python-pycassa python-flask; do
-  sudo apt-get install $i
-done
+#for i in python-pycassa python-flask; do
+#  sudo apt-get install $i
+#done
 
-echo
-echo Pycassa API and Flask API Installed
-echo
-echo
+#echo
+#echo Pycassa API and Flask API Installed
+#echo
+#echo
 
 # Installing cassandra server
 
-sudo apt-get install cassandra
+#sudo apt-get install cassandra
 
-echo
-echo Cassandra Server Installed
-echo
-echo
+#echo
+#echo Cassandra Server Installed
+#echo
+#echo
 
 # Running cassandra server
-cassandra -f # run in backend
+#cassandra -f # run in backend
 
 echo
 echo Cassandra Running 

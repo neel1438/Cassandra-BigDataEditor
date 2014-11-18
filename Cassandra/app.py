@@ -1,32 +1,27 @@
 # Importing Required Libraries
-import pycassa
-import bisect
-import hashlib
-import sys, re
 import csv
 import os
 from collections import OrderedDict
+
 from pycassa.system_manager import *
 from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 from werkzeug import secure_filename
-
 from flask import Flask
-
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect
 
 
 UPLOAD_FOLDER = '/tmp/'
-ALLOWED_EXTENSIONS = set(['csv'])
-
+ALLOWED_EXTENSIONS = {'csv'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
- 
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
 
 @app.route("/", methods=['GET', 'POST'])
 def main():
@@ -42,37 +37,28 @@ def main():
 @app.route("/facets/", methods=['GET', 'POST'])
 def facets():
     output = keyspace()
-    if request.method== 'POST':
-        ks=request.form['1ks_name']
-        cf=request.form['2cf_name']
-        k=output.getallkeys()[ks][cf];
-        return render_template('facet_create.html',k=k,ks=ks,cf=cf)
-
-   
+    if request.method == 'POST':
+        ks = request.form['1ks_name']
+        cf = request.form['2cf_name']
+        k = output.getallkeys()[ks][cf]
+        return render_template('facet_create.html', k=k, ks=ks, cf=cf)
     result = output.keyspace_get_list('localhost:9160')
     d = {}
     for p in result:
         res = output.colum_family_list('localhost:9160', p)
         d[p] = res
-    return render_template('facets.html', d=d,)
+    return render_template('facets.html', d=d, )
+
 
 @app.route("/create_facet/", methods=['POST'])
 def create_facet():
-    output=keyspace()
-    ks=request.form['1ks_name']
-    cf=request.form['2cf_name']
-    column_name=request.form['column_name']
-    result = output.colum_family_content('localhost:9160', ks, cf)
-    output.tempks=ks
-    output.tempcf=cf
-    return render_template("facet_output.html",ks=ks,cf=cf,column_name=column_name);
-        
-
-        
-
-
-
-
+    output = keyspace()
+    ks = request.form['1ks_name']
+    cf = request.form['2cf_name']
+    column_name = request.form['column_name']
+    output.tempks = ks
+    output.tempcf = cf
+    return render_template("facet_output.html", ks=ks, cf=cf, column_name=column_name)
 
 
 @app.route("/dataupload/", methods=['GET', 'POST'])
@@ -84,29 +70,29 @@ def dataupload():
             print "file allowed"
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            f=open("/tmp/"+filename,"rU")
-            print f;
-            ks=request.form['ks']
-            cf=request.form['cf']
+            f = open("/tmp/" + filename, "rU")
+            print f
+            ks = request.form['ks']
+            cf = request.form['cf']
             print ks
             print cf
-            pool = ConnectionPool(ks,['localhost:9160'])
+            pool = ConnectionPool(ks, ['localhost:9160'])
             col_fam = ColumnFamily(pool, cf)
-            a=csv.DictReader(f);
+            a = csv.DictReader(f)
             print a
-            t=0
+            t = 0
             for row in a:
                 print row
-                dic2=OrderedDict()
+                dic2 = OrderedDict()
                 for key in row:
-                    if(not key=='description'):
-                        dic2[key]=row[key]
+                    if not key == 'description':
+                        dic2[key] = row[key]
                 print dic2
-                col_fam.insert(str(t),dic2);
-                t=t+1
-        return redirect("/",302)
+                col_fam.insert(str(t), dic2)
+                t += 1
+        return redirect("/", 302)
 
-   
+
     else:
         output = keyspace()
         result = output.keyspace_get_list('localhost:9160')
@@ -115,122 +101,128 @@ def dataupload():
             res = output.colum_family_list('localhost:9160', p)
             d[p] = res
         info = {"title": "Output for Create Keyspace",
-            "description": "A simple inquiry of function."}
-        return render_template('dataupload.html',info=info ,d=d)
+                "description": "A simple inquiry of function."}
+        return render_template('dataupload.html', info=info, d=d)
 
 
 @app.route('/split/', methods=['POST'])
 def split():
-    if (request.method == 'POST'):
-        kspc = request.form['keyspace'];
+    if request.method == 'POST':
+        kspc = request.form['keyspace']
         columnfamily = request.form['columnfamily']
         key = request.form['split_column_name']
         delimiter = request.form['delimiter']
 
-        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        content = keyspace().colum_family_content(kspc, columnfamily)
         for row in content:
             dic1 = {}
             dic2 = OrderedDict()
             for key1 in row[1]:
-                if (key == key1):
-                    value = row[1][key1];
+                if key == key1:
+                    value = row[1][key1]
                     value = str(value)
                     index = value.find(delimiter)
                     dic2[str(key + '1')] = value[:index]
                     dic2[str(key + '2')] = value[index + 1:]
                 dic1[row[0]] = dic2
             print "------------------------------------------------------------------------------------"
-            print dic1;
-            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
-    return redirect('/', 302);
+            print dic1
+            keyspace().colum_family_insert(kspc, columnfamily, dic1)
+    return redirect('/', 302)
+
 
 @app.route('/split_index/', methods=['POST'])
 def split_index():
-    if (request.method == 'POST'):
-        kspc = request.form['keyspace'];
+    if request.method == 'POST':
+        kspc = request.form['keyspace']
         columnfamily = request.form['columnfamily']
         key = request.form['split_column_name']
         start = int(request.form['start'])
-        end= int(request.form['end'])
-        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        end = int(request.form['end'])
+        content = keyspace().colum_family_content(kspc, columnfamily)
         for row in content:
             dic1 = {}
             dic2 = OrderedDict()
             for key1 in row[1]:
-                if (key == key1):
-                    value = row[1][key1];
+                if key == key1:
+                    value = row[1][key1]
                     value = str(value)
-                    
+
                     dic2[str(key + '1')] = value[start:end]
-                    
+
                 dic1[row[0]] = dic2
             print "------------------------------------------------------------------------------------"
-            print dic1;
-            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
-    return redirect('/', 302);
+            print dic1
+            keyspace().colum_family_insert(kspc, columnfamily, dic1)
+    return redirect('/', 302)
+
 
 @app.route('/trim/', methods=['POST'])
 def trim():
-    if (request.method == 'POST'):
-        kspc = request.form['keyspace'];
+    if request.method == 'POST':
+        kspc = request.form['keyspace']
         columnfamily = request.form['columnfamily']
         key = request.form['trim_column_name']
-        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        content = keyspace().colum_family_content(kspc, columnfamily)
         for row in content:
             dic1 = {}
             dic2 = OrderedDict()
             for key1 in row[1]:
-                if (key == key1):
-                    value = row[1][key1];
+                if key == key1:
+                    value = row[1][key1]
                     value = str(value)
-                    dic2[str(key)] =value.strip()
+                    dic2[str(key)] = value.strip()
                 dic1[row[0]] = dic2
             print "------------------------------------------------------------------------------------"
-            print dic1;
-            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
-    return redirect('/', 302);
+            print dic1
+            keyspace().colum_family_insert(kspc, columnfamily, dic1)
+    return redirect('/', 302)
+
 
 @app.route('/upper/', methods=['POST'])
 def upper():
-    if (request.method == 'POST'):
-        kspc = request.form['keyspace'];
+    if request.method == 'POST':
+        kspc = request.form['keyspace']
         columnfamily = request.form['columnfamily']
         key = request.form['trim_column_name']
-        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        content = keyspace().colum_family_content(kspc, columnfamily)
         for row in content:
             dic1 = {}
             dic2 = OrderedDict()
             for key1 in row[1]:
-                if (key == key1):
-                    value = row[1][key1];
+                if key == key1:
+                    value = row[1][key1]
                     value = str(value)
-                    dic2[str(key)] =value.upper()
+                    dic2[str(key)] = value.upper()
                 dic1[row[0]] = dic2
             print "------------------------------------------------------------------------------------"
-            print dic1;
-            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
-    return redirect('/', 302);
+            print dic1
+            keyspace().colum_family_insert(kspc, columnfamily, dic1)
+    return redirect('/', 302)
+
 
 @app.route('/lower/', methods=['POST'])
 def lower():
-    if (request.method == 'POST'):
-        kspc = request.form['keyspace'];
+    if request.method == 'POST':
+        kspc = request.form['keyspace']
         columnfamily = request.form['columnfamily']
         key = request.form['trim_column_name']
-        content = keyspace().colum_family_content('localhost:9160', kspc, columnfamily)
+        content = keyspace().colum_family_content(kspc, columnfamily)
         for row in content:
             dic1 = {}
             dic2 = OrderedDict()
             for key1 in row[1]:
-                if (key == key1):
-                    value = row[1][key1];
+                if key == key1:
+                    value = row[1][key1]
                     value = str(value)
-                    dic2[str(key)] =value.lower()
+                    dic2[str(key)] = value.lower()
                 dic1[row[0]] = dic2
             print "------------------------------------------------------------------------------------"
-            print dic1;
-            keyspace().colum_family_insert('localhost:9160', kspc, columnfamily, dic1);
-    return redirect('/', 302);
+            print dic1
+            keyspace().colum_family_insert(kspc, columnfamily, dic1)
+    return redirect('/', 302)
+
+
 @app.route('/search/')
 def my_form():
     return render_template("search.html")
@@ -241,7 +233,6 @@ def search():
     if request.method == 'POST':
         key = ""
         word = ""
-        next_val = 0
         if request.form.get('keyspace', None):
             key = request.form["keyspace"]
         if request.form.get('word', None):
@@ -250,19 +241,15 @@ def search():
         word = word.lower()
         d = {}
         res = output.colum_family_list('localhost:9160', key)
-        w = []
         if len(res) != 0:
             for h in res:
-                w = output.colum_family_content('localhost:9160', key, h)
+                w = output.colum_family_content(key, h)
                 d[h] = w
         l = []
         for i in d:
             p = d[i]
-            count = 0;
             for j in p:
                 f = []
-                f.append(i)
-                f.append(j[0])
                 for k in j[1]:
                     f.append(k)
                     f.append(j[1][k])
@@ -280,7 +267,7 @@ def search():
                     t[y] = z
                     s.append(t)
                     break
-        len1 = len(s);
+        len1 = len(s)
         p = {}
         for i in s:
             if i[0] in p:
@@ -288,7 +275,7 @@ def search():
             else:
                 p[i[0]] = []
                 p[i[0]].append(i[1:])
-        flag = 0;
+        flag = 0
         return render_template('serch.html', p=p, len1=len1, word=word, flag=flag)
 
 
@@ -344,7 +331,7 @@ def cluster_operations(name=None):
     return render_template('cluster_operations.html', name=name)
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 @app.route('/Create_Keyspace/', methods=['GET', 'POST'])
 def Create_Keyspace():
@@ -375,7 +362,7 @@ def Create_Keyspace_output(ks_name, replication):
     return render_template('1_res.html', info=info, result=result, error=output.error)
 
 
-#-----------------------------------------------------------------------------------------------------	 
+# -----------------------------------------------------------------------------------------------------
 
 @app.route('/Drop_Keyspace/', methods=['GET', 'POST'])
 def Drop_Keyspace():
@@ -405,7 +392,7 @@ def Drop_Keyspace_output(ks_name):
     return render_template('2_res.html', info=info, result=result, error=output.error)
 
 
-#----------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.route('/List_Keyspace/', methods=['GET', 'POST'])
 def List_Keyspace(error=""):
@@ -417,7 +404,7 @@ def List_Keyspace(error=""):
     return render_template('3_res.html', info=info, result=result)
 
 
-#-------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
 
 @app.route('/Create_ColumnFamily/', methods=['GET', 'POST'])
 def Create_ColumnFamily():
@@ -448,10 +435,10 @@ def Create_ColumnFamily_output(ks_name, cf_name):
     return render_template('4_res.html', info=info, result=result, error=output.error)
 
 
-#-------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------
 
 @app.route('/Drop_ColumnFamily/', methods=['GET', 'POST'])
-def Drop_ColumnFamily(name=None):
+def Drop_ColumnFamily():
     if request.method == 'POST':
         ks_name = request.form["1ks_name"]
         cf_name = request.form["2cf_name"]
@@ -474,13 +461,13 @@ def Drop_ColumnFamily_input(error=""):
 def Drop_ColumnFamily_output(ks_name, cf_name):
     output = keyspace()
     result = output.colum_family_delete('localhost:9160', ks_name, cf_name)
-    #result = "Successfully Deleted"
+    # result = "Successfully Deleted"
     info = {"title": "Output for Drop Column-Family",
             "description": "A simple inquiry of function."}
     return render_template('5_res.html', info=info, result=result, error=output.error)
 
 
-#---------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------
 
 @app.route('/List_ColumnFamily/', methods=['GET', 'POST'])
 def List_ColumnFamily():
@@ -513,7 +500,7 @@ def List_ColumnFamily_output(ks_name):
     return render_template('6_res.html', info=info, result=result, error=output.error)
 
 
-#--------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------------------------
 
 @app.route('/Add_Entry_ColumnFamily/', methods=['GET', 'POST'])
 def Add_Entry_ColumnFamily():
@@ -551,13 +538,13 @@ def Add_Entry_ColumnFamily_input(error=""):
 
 def Add_Entry_ColumnFamily_output(ks_name, cf_name, key):
     output = keyspace()
-    result = output.colum_family_insert('localhost:9160', ks_name, cf_name, key)
+    result = output.colum_family_insert(ks_name, cf_name, key)
     info = {"title": "Output for Add Entry to Column-Family",
             "description": "A simple inquiry of function."}
     return render_template('7_res.html', info=info, result=result, error=output.error)
 
 
-#----------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------
 
 @app.route('/Drop_Entry_ColumnFamily/', methods=['GET', 'POST'])
 def Drop_Entry_ColumnFamily():
@@ -583,13 +570,13 @@ def Drop_Entry_ColumnFamily_input(error=""):
 
 def Drop_Entry_ColumnFamily_output(ks_name, cf_name, key):
     output = keyspace()
-    result = output.column_family_remove('localhost:9160', ks_name, cf_name, key)
+    result = output.column_family_remove(ks_name, cf_name, key)
     info = {"title": "Output for Drop Entry from Column-Family",
             "description": "A simple inquiry of function."}
     return render_template('8_res.html', info=info, result=result, error=output.error)
 
 
-#---------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------
 
 @app.route('/Display_Entry_ColumnFamily/', methods=['GET', 'POST'])
 def Display_Entry_ColumnFamily():
@@ -625,22 +612,21 @@ def Display_Entry_ColumnFamily_input(error=""):
 def Display_Entry_ColumnFamily_output(ks_name, cf_name, next_val):
     output = keyspace()
     if next_val == 0:
-        result = output.colum_family_content('localhost:9160', ks_name, cf_name)
-        output.tempks=ks_name
-        output.tempcf=cf_name
+        output.tempks = ks_name
+        output.tempcf = cf_name
     y = output.cf_result[next_val:next_val + 10]
-    next_val = next_val + 10;
+    next_val += 10
     if len(y) == 0:
         output.error = "No more entries in column family"
     info = {"title": "Output for Display Entry from Column-Family",
             "description": "A simple inquiry of function."}
-    k = output.getallkeys()[output.tempks][output.tempcf];
-    #k = output.getallkeys()[ks_name][cf_name];
+    k = output.getallkeys()[output.tempks][output.tempcf]
+    # k = output.getallkeys()[ks_name][cf_name];
     return render_template('9_res.html', info=info, ks=output.tempks, cf=output.tempcf, result=y, next_val=next_val,
                            k=k, error=output.error)
 
 
-#---------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------
 
 @app.route('/Get_Entry_ColumnFamily/', methods=['GET', 'POST'])
 def Get_Entry_ColumnFamily():
@@ -666,14 +652,14 @@ def Get_Entry_ColumnFamily_input(error=""):
 
 def Get_Entry_ColumnFamily_output(ks_name, cf_name, key):
     output = keyspace()
-    result = output.column_family_get_key('localhost:9160', ks_name, cf_name, key)
+    result = output.column_family_get_key(ks_name, cf_name, key)
     info = {"title": "Output for Get Entry from Column-Family",
             "description": "A simple inquiry of function.",
             "key": key}
     return render_template('get_key_res.html', info=info, result=result, error=output.error)
 
 
-#---------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------
 
 @app.route('/Add_Machine/', methods=['GET', 'POST'])
 def Add_Machine():
@@ -706,7 +692,7 @@ def Add_Machine_output(machine_ip, machine_port):
     return render_template('mc_add_res.html', info=info, result=result, error=output.error)
 
 
-#---------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------
 
 @app.route('/Delete_Machine/', methods=['GET', 'POST'])
 def Delete_Machine():
@@ -737,10 +723,10 @@ def Delete_Machine_output(machine_ip, machine_port):
     return render_template('mc_del_res.html', info=info, result=result, error=output.error)
 
 
-#-----------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------
 
 @app.route('/List_Machines_Cluster/', methods=['GET', 'POST'])
-def List_Machines_Cluster(error=""):
+def List_Machines_Cluster():
     output = keyspace()
     result = output.machine_get_list()
     info = {"title": "Output for List machine",
@@ -748,11 +734,15 @@ def List_Machines_Cluster(error=""):
     return render_template('10_res.html', info=info, result=result, error=output.error)
 
 
-#----------------------------------------------------------------------------------------------------------
-#  Class Defined for the Functions
+# ----------------------------------------------------------------------------------------------------------
+# Class Defined for the Functions
 
 class keyspace:
     """It will contain all keyspace related opertions list,create,delete,select"""
+
+    def __init__(self):
+        pass
+
     server_ips = ["localhost:9160"]
     local_system = "localhost:9160"
     error = "Error"
@@ -761,39 +751,42 @@ class keyspace:
     tempks = ""
     tempcf = ""
 
-    #------------------------------------------- Error testing ---------------------------------------------------------------------
+    # ------------------------------------------- Error testing ---------------------------------------------------------------------
     # Input : machine_id = '10.3.3.20:9160' name = "keyspace_name"
     # Output :  True/False
 
-    def getallkeys(self):
-        output = keyspace();
+    @staticmethod
+    def getallkeys():
         output = keyspace()
-        result = output.keyspace_get_list('localhost:9160')
+        result = output.keyspace_get_list("localhost:9160")
+        print result
         d = {}
         for p in result:
-            res = output.colum_family_list('localhost:9160', p)
+            res = output.colum_family_list("localhost:9160", p)
             d[p] = {}
             for row in res:
                 d[p][row] = []
-                w = output.colum_family_content('localhost:9160', p, row)
+                print p
+                print row
+                w = output.colum_family_content(p, row)
                 for jaffa in w:
                     for key in jaffa[1]:
-                        if (not key in d[p][row]):
-                            d[p][row].append(key);
-        return d;
+                        if not key in d[p][row]:
+                            d[p][row].append(key)
+        return d
 
-    def keyspace_contains(self, machine_id, keyspace_name, column_family_name=''):
+    @staticmethod
+    def keyspace_contains(machine_id, keyspace_name, column_family_name=''):
         """Returns true if keyspace with given name and/or column family is on specified machine_id """
-        error = "Unknown error occur please check your inputs"
         sys = SystemManager(machine_id)
         keyspace.complete_list.clear()
         keyspace_list = sys.list_keyspaces()
         for key in keyspace_list:
-            if (key == keyspace_name):
-                if (column_family_name):
+            if key == keyspace_name:
+                if column_family_name:
                     column_family_list = sys.get_keyspace_column_families(key, use_dict_for_col_metadata=True)
                     for cf in column_family_list:
-                        if (cf == column_family_name):
+                        if cf == column_family_name:
                             return True
                     return False
                 else:
@@ -802,9 +795,9 @@ class keyspace:
 
     # Input : machine_id = '10.3.3.20:9160' name = "keyspace_name"
     # Output :  List of all keyspace and column family
-    def keyspace_columnfamily_list(self, machine_id):
+    @staticmethod
+    def keyspace_columnfamily_list(machine_id):
         """Returns dictionary of all keyspace with their column family on specified machine_id """
-        error = "Unknown error occur please check your inputs"
         sys = SystemManager(machine_id)
         keyspace.complete_list.clear()
         keyspace_list = sys.list_keyspaces()
@@ -820,9 +813,9 @@ class keyspace:
 
     # Input : machine_ip = '10.3.3.20' ,machine_port = '9160'
     # Output : True/False		the latest updated list
-    def machine_add(self, machine_ip, machine_port='9160'):
+    @staticmethod
+    def machine_add(machine_ip, machine_port='9160'):
         """Add the machine to list(server_ips) which will be used in pool"""
-        error = "Unknown error occur please check your inputs"
         entry = machine_ip + ":" + machine_port
         keyspace.server_ips.append(entry)
         return True
@@ -830,9 +823,9 @@ class keyspace:
 
     # Input : machine_ip = '10.3.3.20' ,machine_port = '9160'
     # Output : True/False		the latest updated list
-    def machine_remove(self, machine_ip, machine_port='9160'):
+    @staticmethod
+    def machine_remove(machine_ip, machine_port='9160'):
         """Remove the machine from list(server_ips) which will be used in pool"""
-        error = "Unknown error occur please check your inputs"
         entry = machine_ip + ":" + machine_port
         try:
             keyspace.server_ips.remove(entry)
@@ -840,18 +833,20 @@ class keyspace:
         except ValueError:
             keyspace.error = "Error : No such key in the list."
             return False
-        return True
 
-    def machine_get_list(self):
+
+    @staticmethod
+    def machine_get_list():
         return keyspace.server_ips
 
-    #************************************************** End **************************
+    # ************************************************** End **************************
 
-    #------------------------------------------- Keyspace---------------------------------
+    # ------------------------------------------- Keyspace---------------------------------
 
     # Input : machine_id = '10.3.3.20:9160'
     # Output :  ['TK1', 'system', 'testks']	    List of all keyspace on that machine, not possible to pass list of server like in pool
-    def keyspace_get_list(self, machine_id):
+    @staticmethod
+    def keyspace_get_list(machine_id):
         """Returns all keyspaces in form of list """
         keyspace.error = "Unknown error occur please check your inputs"
         try:
@@ -873,7 +868,7 @@ class keyspace:
     def keyspace_create(self, machine_id, keyspace_name, replication="1"):
         """Create keyspace with given name on specified machine_id """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name) == True):
+        if self.keyspace_contains(keyspace.local_system, keyspace_name):
             keyspace.error = "Desired Keyspace already exist with this name"
             return False
         try:
@@ -895,7 +890,7 @@ class keyspace:
     def keyspace_delete(self, machine_id, keyspace_name):
         """Delete keyspace with given name on specified machine_id """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name):
             keyspace.error = "Desired Keyspace does not exist."
             return False
         try:
@@ -911,9 +906,9 @@ class keyspace:
         sys.close()
         return True
 
-    #************************************************** End *********************************
+    # ************************************************** End *********************************
 
-    #------------------------------------------- Column Family -----------------------------
+    # ------------------------------------------- Column Family -----------------------------
 
     # Input : machine_id = '10.3.3.20:9160'keyspace_name = 'ks1'
     # Output : ['TestCF','Testcf2']
@@ -921,7 +916,7 @@ class keyspace:
     def colum_family_list(self, machine_id, keyspace_name):
         """List all column family in a given keyspace """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name):
             keyspace.error = "Desired Keyspace does not exist."
             return False
         try:
@@ -945,7 +940,7 @@ class keyspace:
     def colum_family_create(self, machine_id, keyspace_name, column_family_name):
         """Create a column family in a given keyspace """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name):
             keyspace.error = "Desired Keyspace does not exist."
             return False
         try:
@@ -967,7 +962,7 @@ class keyspace:
     def colum_family_delete(self, machine_id, keyspace_name, column_family_name):
         """Create a column family in a given keyspace """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name):
             keyspace.error = "Desired Keyspace,Column Family pair could not be found."
             return False
         try:
@@ -988,11 +983,11 @@ class keyspace:
     # Input : machine_id = '10.3.3.20:9160',keyspace_name = 'ks1',column_family_name = 'cf1'
     # Output : [ ('Key1', OrderedDict([('AGE', '24'), ('NAME', 'PRAJIT')])),('Key2', OrderedDict([('AGE', '23'), ('NAME', 'MAYUR')])) ]
     # Unsuccessful : False
-    def colum_family_content(self, machine_id, keyspace_name, column_family_name):
+    def colum_family_content(self, keyspace_name, column_family_name):
         """Returns content of column family of given keyspace """
         keyspace.cf_result = []
         keyspace.error = "Unknown error : May be one of node in your cluster is down please check?"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name):
             keyspace.error = "Desired Keyspace,Column Family pair could not be found."
             return False
         try:
@@ -1014,18 +1009,19 @@ class keyspace:
             print e
             return False
         keyspace.cf_result = result
-        keyspace.tempks = keyspace_name;
-        keyspace.tempcf = column_family_name;
+        keyspace.tempks = keyspace_name
+        keyspace.tempcf = column_family_name
+        print result
         return result
 
 
     # Input : machine_id = '10.3.3.20:9160',keyspace_name = 'ks1',column_family_name = 'cf1'
     # Output : True
     # Unsuccessful : False
-    def colum_family_insert(self, machine_id, keyspace_name, column_family_name, user_content):
+    def colum_family_insert(self, keyspace_name, column_family_name, user_content):
         """Insert into a column family for a given keyspace """
         keyspace.error = "Unknown error occur please check your input"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name):
             keyspace.error = "Desired Keyspace, Column Family pair could not be found."
             return False
         try:
@@ -1050,10 +1046,10 @@ class keyspace:
     # Input : machine_id = '10.3.3.20:9160',keyspace_name = 'ks1',column_family_name = 'cf1' , Key = Key1
     # Output : True
     # Unsuccessful : False
-    def column_family_remove(self, machine_id, keyspace_name, column_family_name, key):
+    def column_family_remove(self, keyspace_name, column_family_name, key):
         """Remove a key from column family for a given keyspace """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name) == False):
+        if not self.keyspace_contains(keyspace.local_system, keyspace_name, column_family_name):
             keyspace.error = "Desired Keyspace,Column Family pair could not be found."
             return False
         try:
@@ -1077,10 +1073,10 @@ class keyspace:
     # Input : machine_id = '10.3.3.20:9160',keyspace_name = 'ks1',column_family_name = 'cf1', key = Key1
     # Output : ('Key1', OrderedDict([('AGE', '24'), ('NAME', 'PRAJIT')]))
     # Unsuccessful : False
-    def column_family_get_key(self, machine_id, keyspace_name, column_family_name, key):
+    def column_family_get_key(self, keyspace_name, column_family_name, key):
         """Remove a key from column family for a given keyspace """
         keyspace.error = "Unknown error occur please check your inputs"
-        if (self.keyspace_contains("localhost:9160", keyspace_name, column_family_name) == False):
+        if not self.keyspace_contains("localhost:9160", keyspace_name, column_family_name):
             keyspace.error = "Desired Keyspace, Column Family pair could not be found."
             return False
         try:
